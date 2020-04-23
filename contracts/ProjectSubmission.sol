@@ -1,57 +1,107 @@
-pragma... // Step 1
+// Step 1
+pragma solidity ^0.5.0;
 
-contract ProjectSubmission { // Step 1
+// Step 1
+contract ProjectSubmission {
 
-    ...owner... // Step 1 (state variable)
-    // ...ownerBalance... // Step 4 (state variable)
-    modifier onlyOwner() { // Step 1
-      ...
+    // Step 1 (state variable)
+    address public owner = msg.sender;
+
+    // Step 4 (state variable)
+    uint public ownerBalance; 
+    
+    // Step 1
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function.");
+        _;
     }
     
-    struct University { // Step 1
-        ...available...
-        ...balance...
+    // Step 1
+    struct University {
+        uint balance;
+        bool available;
     }
-    ...universities... // Step 1 (state variable)
+
+    // Step 1 (state variable)
+    mapping(address => University) public universities;
     
-    // enum ProjectStatus { ... } // Step 2
-    // struct Project { // Step 2
-    //     ...author...
-    //     ...university...
-    //     ...status...
-    //     ...balance...
-    // }
-    // ...projects... // Step 2 (state variable)
-    
-    function registerUniversity... { // Step 1
-      ...
-    }
-    
-    function disableUniversity... { // Step 1
-      ...
+    // Step 2
+    enum ProjectStatus { Waiting, Rejected, Approved, Disabled }
+
+    // Step 2
+    struct Project {
+        address author;
+        address university;
+        ProjectStatus status;
+        uint balance;
     }
     
-    // function submitProject... { // Step 2 and 4
-    //   ...
-    // }
+    // Step 2 (state variable)
+    mapping(bytes32 => Project) public projects;
+
+    // Step 1
+    function registerUniversity(address universityAddress) onlyOwner public {
+         universities[universityAddress].available = true;
+    }
     
-    // function disableProject... { // Step 3
-    //   ...
-    // }
+    // Step 1
+    function disableUniversity(address universityAddress) onlyOwner public {
+        universities[universityAddress].available = false;
+    }
     
-    // function reviewProject... { // Step 3
-    //   ...
-    // }
+    // Step 2 and 4
+    function submitProject(bytes32 projectHash, address universityAddress) public payable {
+        require(msg.value == 1 ether, "The submission fee is 1 ether");
+        require(projects[projectHash].author == address(0), "A project with this hash already exists.");
+        require(universities[universityAddress].available == true, "The university does not accept submissions.");
+        projects[projectHash] = Project(msg.sender, universityAddress, ProjectStatus.Waiting, 0);
+        ownerBalance += 1 ether;      
+    }
     
-    // function donate... { // Step 4
-    //   ...
-    // }
+    // Step 3
+    function disableProject(bytes32 projectHash) onlyOwner public {
+        //According to Coding Assignment only projects with status Approved should be able to be disabled.
+        //According to ProjectSubmission.test.js projects with status Waiting should also be able to be disabled (line 228 - 244).
+        //require(projects[projectHash].status == ProjectStatus.Approved, "The current project status needs to be Approved.");
+        projects[projectHash].status = ProjectStatus.Disabled;
+    }
     
-    // function withdraw... { // Step 5
-    //   ...
-    // }
+    // Step 3
+    function reviewProject(bytes32 projectHash, ProjectStatus status) onlyOwner public {
+        require(status == ProjectStatus.Approved || status == ProjectStatus.Rejected, "The new status must be Approved or Rejected.");
+        require(projects[projectHash].status == ProjectStatus.Waiting, "The current project status needs to be Waiting.");
+        projects[projectHash].status = status;
+    }
     
-    // function withdraw... {  // Step 5 (Overloading Function)
-    //   ...
-    // }
+    // Step 4
+    function donate(bytes32 projectHash) public payable {
+        require(projects[projectHash].status == ProjectStatus.Approved, "Donations can only be received by projects with status Approved");
+        projects[projectHash].balance += msg.value * 7 / 10;
+        universities[projects[projectHash].university].balance +=  msg.value * 2 / 10;
+        ownerBalance += msg.value * 1 / 10;
+    }
+    
+    // Step 5
+    function withdraw() public {
+        require(msg.sender == owner || universities[msg.sender].balance > 0);
+        if (msg.sender == owner) {
+            uint amount = ownerBalance;
+            ownerBalance = 0;
+            msg.sender.transfer(amount);
+        }
+        else {
+            uint amount = universities[msg.sender].balance;
+            universities[msg.sender].balance = 0;
+            msg.sender.transfer(amount);
+        }
+    }
+    
+    // Step 5 (Overloading Function)
+    function withdraw(bytes32 projectHash) public {
+        require(msg.sender == projects[projectHash].author, "Only the author can withdraw funds from a project.");
+        uint amount = projects[projectHash].balance;
+        projects[projectHash].balance = 0;
+        msg.sender.transfer(amount);
+    }    
+       
 }
