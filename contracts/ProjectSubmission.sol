@@ -5,7 +5,7 @@ pragma solidity ^0.5.0;
 contract ProjectSubmission {
 
     // Step 1 (state variable)
-    address public owner = msg.sender;
+    address payable public owner = msg.sender;
 
     // Step 4 (state variable)
     uint public ownerBalance; 
@@ -18,8 +18,8 @@ contract ProjectSubmission {
     
     // Step 1
     struct University {
-        uint balance;
         bool available;
+        uint balance;
     }
 
     // Step 1 (state variable)
@@ -30,8 +30,8 @@ contract ProjectSubmission {
 
     // Step 2
     struct Project {
-        address author;
-        address university;
+        address payable author;
+        address payable university;
         ProjectStatus status;
         uint balance;
     }
@@ -40,17 +40,17 @@ contract ProjectSubmission {
     mapping(bytes32 => Project) public projects;
 
     // Step 1
-    function registerUniversity(address universityAddress) onlyOwner public {
+    function registerUniversity(address payable universityAddress) public onlyOwner {
          universities[universityAddress].available = true;
     }
     
     // Step 1
-    function disableUniversity(address universityAddress) onlyOwner public {
+    function disableUniversity(address payable universityAddress) public onlyOwner {
         universities[universityAddress].available = false;
     }
     
     // Step 2 and 4
-    function submitProject(bytes32 projectHash, address universityAddress) public payable {
+    function submitProject(bytes32 projectHash, address payable universityAddress) public payable {
         require(msg.value == 1 ether, "The submission fee is 1 ether");
         require(projects[projectHash].author == address(0), "A project with this hash already exists.");
         require(universities[universityAddress].available == true, "The university does not accept submissions.");
@@ -59,15 +59,12 @@ contract ProjectSubmission {
     }
     
     // Step 3
-    function disableProject(bytes32 projectHash) onlyOwner public {
-        //According to Coding Assignment only projects with status Approved should be able to be disabled.
-        //According to ProjectSubmission.test.js projects with status Waiting should also be able to be disabled (line 228 - 244).
-        //require(projects[projectHash].status == ProjectStatus.Approved, "The current project status needs to be Approved.");
+    function disableProject(bytes32 projectHash) public onlyOwner {
         projects[projectHash].status = ProjectStatus.Disabled;
     }
     
     // Step 3
-    function reviewProject(bytes32 projectHash, ProjectStatus status) onlyOwner public {
+    function reviewProject(bytes32 projectHash, ProjectStatus status) public onlyOwner {
         require(status == ProjectStatus.Approved || status == ProjectStatus.Rejected, "The new status must be Approved or Rejected.");
         require(projects[projectHash].status == ProjectStatus.Waiting, "The current project status needs to be Waiting.");
         projects[projectHash].status = status;
@@ -82,7 +79,7 @@ contract ProjectSubmission {
     }
     
     // Step 5
-    function withdraw() public {
+    function withdraw() public payable {
         require(msg.sender == owner || universities[msg.sender].balance > 0);
         if (msg.sender == owner) {
             uint amount = ownerBalance;
@@ -97,7 +94,7 @@ contract ProjectSubmission {
     }
     
     // Step 5 (Overloading Function)
-    function withdraw(bytes32 projectHash) public {
+    function withdraw(bytes32 projectHash) public payable {
         require(msg.sender == projects[projectHash].author, "Only the author can withdraw funds from a project.");
         uint amount = projects[projectHash].balance;
         projects[projectHash].balance = 0;
