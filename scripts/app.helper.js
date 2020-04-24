@@ -42,7 +42,7 @@ let App = {
     // The init() function will be called after the Web3 object is set in the test file
     // This function should update App.web3, App.networkId and App.contract
     async init() {
-        App.web3 = new Web3("ws://localhost:8545");
+        App.web3 = new Web3(web3.givenProvider);
         App.networkId = web3.eth.net.getId();
         App.contract = await ProjectSubmission.deployed();
     },
@@ -57,7 +57,7 @@ let App = {
     // Read the owner state from the contract and update App.contractOwner
     // Return the owner address
     async readOwnerAddress(){
-        let result = await App.contract.owner({ from: web3.eth.defaultAccount })
+        let result = await App.contract.owner()
         App.contractOwner = result
         return App.contractOwner
     },
@@ -65,7 +65,7 @@ let App = {
     // Read the owner balance from the contract
     // Return the owner balance
     async readOwnerBalance(){
-        let result = await App.contract.ownerBalance({ from: web3.eth.defaultAccount })
+        let result = await App.contract.ownerBalance()
         return result
     },
 
@@ -73,7 +73,7 @@ let App = {
     // This function takes one address parameter called account    
     // Return the state object 
     async readUniversityState(account){
-        let result = await App.contract.universities(account, { from: web3.eth.defaultAccount })
+        let result = await App.contract.universities(account)
         return result
     },
 
